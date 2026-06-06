@@ -1,363 +1,294 @@
 /**
  * Zavod Monitoring - Frontend JavaScript
- * - WebSocket orqali real-time video stream
- * - Transport va ishchi loglarini yangilash
- * - API so'rovlar
  */
 
-// ═══════════════════════════════════════════════
-// SOZLAMALAR
-// ═══════════════════════════════════════════════
-const API = '';          // Bir xil serverda ishlaydi
+const API = '';
 let videoWS = null;
 let hodisaWS = null;
-let statistikaTimer = null;
 
-// ═══════════════════════════════════════════════
-// VAQT KO'RSATGICH
-// ═══════════════════════════════════════════════
+// ── Vaqt ─────────────────────────────────────
 function vaqtYangilash() {
   const el = document.getElementById('sana-vaqt');
   if (!el) return;
   const h = new Date();
   const kun = ['Yakshanba','Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];
-  el.textContent = `${kun[h.getDay()]}  ${h.toLocaleDateString('uz')}  ${h.toLocaleTimeString('uz')}`;
+  el.textContent = kun[h.getDay()] + '  ' + h.toLocaleDateString('uz') + '  ' + h.toLocaleTimeString('uz');
 }
 setInterval(vaqtYangilash, 1000);
 vaqtYangilash();
 
-// ═══════════════════════════════════════════════
-// VIDEO WEBSOCKET
-// ═══════════════════════════════════════════════
+// ── Video WebSocket ───────────────────────────
 function videoWSUlash() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  videoWS = new WebSocket(`${proto}://${location.host}/ws/video`);
+  videoWS = new WebSocket(proto + '://' + location.host + '/ws/video');
 
-  videoWS.onopen = () => {
+  videoWS.onopen = function() {
     console.log('[Video WS] Ulandi');
     document.getElementById('kamera-overlay').classList.add('yashirin');
     document.getElementById('kamera-holat').textContent = 'JONLI';
     document.getElementById('kamera-holat').className = 'badge yashil';
   };
 
-  videoWS.onmessage = (e) => {
+  videoWS.onmessage = function(e) {
     const data = JSON.parse(e.data);
     if (data.tur === 'video' && data.kadr) {
-      // Rasm kelishi bilanoq overlay ni yashirish
       document.getElementById('kamera-overlay').classList.add('yashirin');
       document.getElementById('video-kadr').src = 'data:image/jpeg;base64,' + data.kadr;
     }
   };
 
-  videoWS.onclose = () => {
-    console.log('[Video WS] Uzildi, qayta ulanmoqda...');
+  videoWS.onclose = function() {
     document.getElementById('kamera-holat').textContent = 'UZILDI';
     document.getElementById('kamera-holat').className = 'badge qizil';
     document.getElementById('kamera-overlay').classList.remove('yashirin');
-    document.getElementById('kamera-overlay').innerHTML = '<span>📷 Kameraga ulanmoqda...</span>';
+    document.getElementById('kamera-overlay').innerHTML = '<span>Kameraga ulanmoqda...</span>';
     setTimeout(videoWSUlash, 3000);
   };
 
-  videoWS.onerror = (e) => {
+  videoWS.onerror = function(e) {
     console.error('[Video WS] Xatolik:', e);
   };
 }
 
-// ═══════════════════════════════════════════════
-// HODISALAR WEBSOCKET
-// ═══════════════════════════════════════════════
+// ── Hodisalar WebSocket ───────────────────────
 function hodisaWSUlash() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  hodisaWS = new WebSocket(`${proto}://${location.host}/ws/hodisalar`);
+  hodisaWS = new WebSocket(proto + '://' + location.host + '/ws/hodisalar');
 
-  hodisaWS.onopen = () => {
-    console.log('[Hodisa WS] Ulandi');
+  hodisaWS.onopen = function() {
     document.getElementById('ws-holat').textContent = 'Ulangan';
     document.getElementById('ws-holat').className = 'badge yashil';
   };
 
-  hodisaWS.onmessage = (e) => {
+  hodisaWS.onmessage = function(e) {
     const data = JSON.parse(e.data);
-
     if (data.tur === 'transport') {
-      // WebSocket faqat ko'rsatadi, bazaga YOZMAYDI - 2 marta muammo yo'q
-      transportJadvalQoshish(data["malumot"], true);
-      hodisaQoshish('transport', data["malumot"]);
+      transportJadvalQoshish(data.malumot, true);
+      hodisaQoshish('transport', data.malumot);
       statistikaYangilash();
     } else if (data.tur === 'ishchi') {
-      ishchiJadvalQoshish(data["malumot"], true);
-      hodisaQoshish('ishchi', data["malumot"]);
+      ishchiJadvalQoshish(data.malumot, true);
+      hodisaQoshish('ishchi', data.malumot);
       statistikaYangilash();
     }
   };
 
-  hodisaWS.onclose = () => {
+  hodisaWS.onclose = function() {
     document.getElementById('ws-holat').textContent = 'Uzildi';
     document.getElementById('ws-holat').className = 'badge qizil';
     setTimeout(hodisaWSUlash, 3000);
   };
 }
 
-// ═══════════════════════════════════════════════
-// JADVAL FUNKSIYALARI
-// ═══════════════════════════════════════════════
+// ── Jadval ────────────────────────────────────
 function vaqtFormat(v) {
   if (!v) return '—';
   return v.replace('T', ' ').substring(0, 16);
 }
 
 function harakatBadge(harakat) {
-  if (harakat === 'kirdi') return `<span class="harakat-kirdi">▶ Kirdi</span>`;
-  if (harakat === 'chiqdi') return `<span class="harakat-chiqdi">◀ Chiqdi</span>`;
-  return harakat;
+  if (harakat === 'kirdi')  return '<span class="harakat-kirdi">&#9654; Kirdi</span>';
+  if (harakat === 'chiqdi') return '<span class="harakat-chiqdi">&#9664; Chiqdi</span>';
+  return harakat || '—';
 }
 
-function transportJadvalQoshish(d, yangi = false) {
+function transportJadvalQoshish(d, yangi) {
   const tbody = document.getElementById('transport-tbody');
   if (!tbody) return;
-
-  // Bo'sh satrni olib tashlash
-  const bosh = tbody.querySelector('.boʻsh');
+  const bosh = tbody.querySelector('.bosh');
   if (bosh) bosh.parentElement.remove();
-
   const tr = document.createElement('tr');
   if (yangi) tr.classList.add('yangi');
-  tr.innerHTML = `
-    <td>${vaqtFormat(d.vaqt)}</td>
-    <td><strong>${d.raqam || '—'}</strong></td>
-    <td>${d.tur || '—'}</td>
-    <td>${d.rang || '—'}</td>
-    <td>${d.davlat || '—'}</td>
-    <td>${d.viloyat || '—'}</td>
-    <td>${harakatBadge(d.harakat)}</td>
-  `;
+  tr.innerHTML =
+    '<td>' + vaqtFormat(d.vaqt) + '</td>' +
+    '<td><strong>' + (d.raqam || '—') + '</strong></td>' +
+    '<td>' + (d.tur || '—') + '</td>' +
+    '<td>' + (d.rang || '—') + '</td>' +
+    '<td>' + (d.davlat || '—') + '</td>' +
+    '<td>' + (d.viloyat || '—') + '</td>' +
+    '<td>' + harakatBadge(d.harakat) + '</td>';
   tbody.insertBefore(tr, tbody.firstChild);
-
-  // Maksimal 100 satr
   while (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
 }
 
-function ishchiJadvalQoshish(d, yangi = false) {
+function ishchiJadvalQoshish(d, yangi) {
   const tbody = document.getElementById('ishchi-tbody');
   if (!tbody) return;
-
-  const bosh = tbody.querySelector('.boʻsh');
+  const bosh = tbody.querySelector('.bosh');
   if (bosh) bosh.parentElement.remove();
-
   const tr = document.createElement('tr');
   if (yangi) tr.classList.add('yangi');
-  tr.innerHTML = `
-    <td>${vaqtFormat(d.vaqt)}</td>
-    <td><strong>${d.ism || 'Noma\'lum'}</strong></td>
-    <td>${harakatBadge(d.harakat)}</td>
-  `;
+  tr.innerHTML =
+    '<td>' + vaqtFormat(d.vaqt) + '</td>' +
+    '<td><strong>' + (d.ism || "Noma'lum") + '</strong></td>' +
+    '<td>' + harakatBadge(d.harakat) + '</td>';
   tbody.insertBefore(tr, tbody.firstChild);
   while (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
 }
 
-// ═══════════════════════════════════════════════
-// HODISALAR LENTA
-// ═══════════════════════════════════════════════
+// ── Hodisalar lenta ───────────────────────────
 function hodisaQoshish(tur, d) {
   const lenta = document.getElementById('hodisalar-lenta');
   if (!lenta) return;
-
   const div = document.createElement('div');
-  div.className = `hodisa ${tur}`;
-
+  div.className = 'hodisa ' + tur;
   const vaqt = new Date().toLocaleTimeString('uz');
-
   if (tur === 'transport') {
-    div.innerHTML = `
-      <strong>${vaqt}</strong> — 
-      ${d.tur || 'Transport'} 
-      <strong>${d.raqam || ''}</strong> 
-      ${d.harakat === 'kirdi' ? '▶ KIRDI' : '◀ CHIQDI'} | 
-      ${d.rang || ''} | ${d.davlat || ''} / ${d.viloyat || ''}
-    `;
+    div.innerHTML = '<strong>' + vaqt + '</strong> — ' +
+      (d.tur || 'Transport') + ' <strong>' + (d.raqam || '') + '</strong> ' +
+      (d.harakat === 'kirdi' ? 'KIRDI' : 'CHIQDI') + ' | ' +
+      (d.rang || '') + ' | ' + (d.davlat || '') + '/' + (d.viloyat || '');
   } else if (tur === 'ishchi') {
-    div.innerHTML = `
-      <strong>${vaqt}</strong> — 
-      👤 <strong>${d.ism || "Noma'lum"}</strong> aniqlandi
-    `;
+    div.innerHTML = '<strong>' + vaqt + '</strong> — ' +
+      '<strong>' + (d.ism || "Noma'lum") + '</strong> aniqlandi';
+  } else {
+    div.innerHTML = '<strong>' + vaqt + '</strong> — ' + (d.harakat || '');
   }
-
   lenta.insertBefore(div, lenta.firstChild);
   while (lenta.children.length > 50) lenta.removeChild(lenta.lastChild);
 }
 
-// ═══════════════════════════════════════════════
-// STATISTIKA YANGILASH
-// ═══════════════════════════════════════════════
+// ── Statistika ────────────────────────────────
 async function statistikaYangilash() {
   try {
     const r = await fetch('/api/statistika');
     const d = await r.json();
-
-    document.getElementById('bugun-kirdi').textContent =
-      d.bugun_transport?.['kirdi'] ?? 0;
-    document.getElementById('bugun-chiqdi').textContent =
-      d.bugun_transport?.['chiqdi'] ?? 0;
-    document.getElementById('bugun-ishchi').textContent =
-      d.bugun_ishchilar ?? 0;
-    document.getElementById('jami-transport').textContent =
-      d.jami_transport ?? 0;
+    document.getElementById('bugun-kirdi').textContent   = (d.bugun_transport && d.bugun_transport['kirdi'])   || 0;
+    document.getElementById('bugun-chiqdi').textContent  = (d.bugun_transport && d.bugun_transport['chiqdi'])  || 0;
+    document.getElementById('bugun-ishchi').textContent  = d.bugun_ishchilar  || 0;
+    document.getElementById('jami-transport').textContent = d.jami_transport  || 0;
   } catch(e) {
     console.warn('[Statistika] Xatolik:', e);
   }
 }
 
-// ═══════════════════════════════════════════════
-// MA'LUMOTLARNI YUKLASH
-// ═══════════════════════════════════════════════
+// ── Ma'lumotlar yuklash ───────────────────────
 async function malumotlarYuklash() {
   try {
-    const [tr, ir] = await Promise.all([
-      fetch('/api/transport?limit=50').then(r => r.json()),
-      fetch('/api/ishchilar?limit=50').then(r => r.json()),
-    ]);
-
-    tr.forEach(d => transportJadvalQoshish(d));
-    ir.forEach(d => ishchiJadvalQoshish(d));
+    const tr = await fetch('/api/transport?limit=50').then(function(r){ return r.json(); });
+    const ir = await fetch('/api/ishchilar?limit=50').then(function(r){ return r.json(); });
+    tr.forEach(function(d){ transportJadvalQoshish(d, false); });
+    ir.forEach(function(d){ ishchiJadvalQoshish(d, false); });
   } catch(e) {
-    console.warn('[Malumot] Yuklashda xatolik:', e);
+    console.warn('[Malumot] Xatolik:', e);
   }
 }
 
-// ═══════════════════════════════════════════════
-// TUGMA FUNKSIYALARI
-// ═══════════════════════════════════════════════
+// ── Tugmalar ─────────────────────────────────
 async function transportSkan(harakat) {
-  xabarKorsatish(`⏳ ${harakat === 'kirdi' ? 'Kirdi' : 'Chiqdi'} skaplanmoqda...`, 'info');
-
+  xabarKorsatish('Skaplanmoqda...', 'muvaffaq');
   try {
-    const r = await fetch(`/api/transport/${harakat}`, { method: 'POST' });
+    const r = await fetch('/api/transport/' + harakat, { method: 'POST' });
     const d = await r.json();
-
     if (d.holat === 'ok') {
-      const m = d["malumot"];
+      const m = d.malumot;
       xabarKorsatish(
-        `✅ ${m.tur} ${harakat.toUpperCase()}: ${m.raqam} | ${m.rang} | ${m.davlat}/${m.viloyat}`,
+        (m.tur || '') + ' ' + harakat.toUpperCase() + ': ' +
+        (m.raqam || '') + ' | ' + (m.rang || '') + ' | ' +
+        (m.davlat || '') + '/' + (m.viloyat || ''),
         'muvaffaq'
       );
       transportDetalKorsatish(m);
-      transportJadvalQoshish({ ...m, vaqt: new Date().toISOString() }, true);
+      transportJadvalQoshish(Object.assign({}, m, { vaqt: new Date().toISOString() }), true);
       statistikaYangilash();
     } else {
-      xabarKorsatish('❌ ' + (d.xabar || 'Xatolik yuz berdi'), 'xato');
+      xabarKorsatish('Xatolik: ' + (d.xabar || 'Noma\'lum'), 'xato');
     }
   } catch(e) {
-    xabarKorsatish('❌ Server bilan bog\'lanishda xatolik', 'xato');
+    xabarKorsatish('Server bilan bog\'lanishda xatolik', 'xato');
   }
 }
 
 async function ishchiSkan() {
-  xabarKorsatish('⏳ Ishchilar skaplanmoqda...', 'info');
+  xabarKorsatish('Ishchilar skaplanmoqda...', 'muvaffaq');
   try {
     const r = await fetch('/api/ishchi/skan', { method: 'POST' });
     const d = await r.json();
     if (d.son > 0) {
-      xabarKorsatish(`✅ ${d.son} ta ishchi aniqlandi`, 'muvaffaq');
-      d.ishchilar.forEach(i => {
+      xabarKorsatish(d.son + ' ta ishchi aniqlandi', 'muvaffaq');
+      d.ishchilar.forEach(function(i) {
         ishchiJadvalQoshish({ ism: i.ism, harakat: 'aniqlandi', vaqt: new Date().toISOString() }, true);
       });
       tabAlmash('ishchi');
       statistikaYangilash();
     } else {
-      xabarKorsatish('ℹ️ Ishchi topilmadi', 'info');
+      xabarKorsatish('Ishchi topilmadi', 'muvaffaq');
     }
   } catch(e) {
-    xabarKorsatish('❌ Xatolik: ' + e.message, 'xato');
+    xabarKorsatish('Xatolik: ' + e.message, 'xato');
   }
 }
 
+function excelYuklash() {
+  const tanlangan = prompt(
+    'Qaysi davr uchun Excel hisobot?\n\n1 - Bugun\n2 - Bu hafta\n3 - Bu oy\n4 - Hammasi\n\nRaqam kiriting (1-4):',
+    '1'
+  );
+  const davrlar = { '1': 'bugun', '2': 'hafta', '3': 'oy', '4': 'hammasi' };
+  const davr = davrlar[tanlangan];
+  if (!davr) { xabarKorsatish("Noto'g'ri tanlov", 'xato'); return; }
+  xabarKorsatish('Excel tayyorlanmoqda...', 'muvaffaq');
+  window.open('/api/excel/yuklash?davr=' + davr, '_blank');
+}
+
 function pdfYuklash() {
-  const davrlar = ['1 - Bugun', '2 - Bu hafta', '3 - Bu oy', '4 - Hammasi'];
-  const tanlangan = prompt('PDF hisobot davri:\n\n' + davrlar.join('\n') + '\n\nRaqam kiriting (1-4):', '1');
-  const xarita = {'1': 'bugun', '2': 'hafta', '3': 'oy', '4': 'hammasi'};
-  const davr = xarita[tanlangan];
+  const tanlangan = prompt(
+    'Qaysi davr uchun PDF hisobot?\n\n1 - Bugun\n2 - Bu hafta\n3 - Bu oy\n4 - Hammasi\n\nRaqam kiriting (1-4):',
+    '1'
+  );
+  const davrlar = { '1': 'bugun', '2': 'hafta', '3': 'oy', '4': 'hammasi' };
+  const davr = davrlar[tanlangan];
   if (!davr) { xabarKorsatish("Noto'g'ri tanlov", 'xato'); return; }
   xabarKorsatish('PDF tayyorlanmoqda...', 'muvaffaq');
   window.open('/api/pdf/yuklash?davr=' + davr, '_blank');
 }
-  const davrlar = [
-    { qiy: 'bugun',   nom: '📅 Bugun' },
-    { qiy: 'hafta',   nom: '📆 Bu hafta' },
-    { qiy: 'oy',      nom: '🗓️ Bu oy' },
-    { qiy: 'hammasi', nom: '📂 Hammasi' },
-  ];
 
-  // Oddiy tanlash dialogi
-  const tanlangan = prompt(
-    'Qaysi davr uchun hisobot?\n\n' +
-    '1 - Bugun\n2 - Bu hafta\n3 - Bu oy\n4 - Hammasi\n\nRaqam kiriting (1-4):',
-    '1'
-  );
-  const idx = parseInt(tanlangan) - 1;
-  if (isNaN(idx) || idx < 0 || idx > 3) {
-    xabarKorsatish('❌ Noto\'g\'ri tanlov', 'xato');
-    return;
-  }
-  const davr = davrlar[idx].qiy;
-  xabarKorsatish(`⏳ ${davrlar[idx].nom} uchun Excel tayyorlanmoqda...`, 'muvaffaq');
-  window.open(`/api/excel/yuklash?davr=${davr}`, '_blank');
-}
-
-// ═══════════════════════════════════════════════
-// YORDAMCHI FUNKSIYALAR
-// ═══════════════════════════════════════════════
-function xabarKorsatish(matn, tur = 'muvaffaq') {
+// ── Yordamchi ────────────────────────────────
+function xabarKorsatish(matn, tur) {
   const el = document.getElementById('natija-xabar');
+  if (!el) return;
   el.textContent = matn;
-  el.className = `natija-xabar ${tur}`;
+  el.className = 'natija-xabar ' + (tur || 'muvaffaq');
   el.style.display = 'block';
   clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.style.display = 'none'; }, 5000);
+  el._timer = setTimeout(function(){ el.style.display = 'none'; }, 5000);
 }
 
 function transportDetalKorsatish(d) {
   const karta = document.getElementById('oxirgi-transport-karta');
   const detal = document.getElementById('transport-detal');
+  if (!karta || !detal) return;
   karta.style.display = 'block';
-
   const maydonlar = [
-    ['🔢 Raqam',   d.raqam],
-    ['🚛 Tur',     d.tur],
-    ['🎨 Rang',    d.rang],
-    ['🌍 Davlat',  d.davlat],
-    ['📍 Viloyat', d.viloyat],
-    ['↔️ Harakat', d.harakat === 'kirdi' ? '▶ KIRDI' : '◀ CHIQDI'],
-    ['🎯 Ishonch', `${(d.ishonch * 100).toFixed(0)}%`],
-    ['📸 Rasm',    d.rasm_yol ? '✅ Saqlandi' : '❌ Yo\'q'],
+    ['Raqam',   d.raqam],
+    ['Tur',     d.tur],
+    ['Rang',    d.rang],
+    ['Davlat',  d.davlat],
+    ['Viloyat', d.viloyat],
+    ['Harakat', d.harakat === 'kirdi' ? 'KIRDI' : 'CHIQDI'],
+    ['Ishonch', d.ishonch ? Math.round(d.ishonch * 100) + '%' : '—'],
+    ['Rasm',    d.rasm_yol ? 'Saqlandi' : "Yo'q"],
   ];
-
-  detal.innerHTML = maydonlar.map(([nom, qiy]) => `
-    <div class="detal-qator">
-      <div class="detal-nom">${nom}</div>
-      <div class="detal-qiy">${qiy || '—'}</div>
-    </div>
-  `).join('');
+  detal.innerHTML = maydonlar.map(function(item) {
+    return '<div class="detal-qator"><div class="detal-nom">' + item[0] +
+           '</div><div class="detal-qiy">' + (item[1] || '—') + '</div></div>';
+  }).join('');
 }
 
 function tabAlmash(nom) {
   document.getElementById('panel-transport').style.display = nom === 'transport' ? 'block' : 'none';
-  document.getElementById('panel-ishchi').style.display   = nom === 'ishchi'    ? 'block' : 'none';
+  document.getElementById('panel-ishchi').style.display   = nom === 'ishchi'     ? 'block' : 'none';
   document.getElementById('tab-transport').className = 'tab' + (nom === 'transport' ? ' faol' : '');
   document.getElementById('tab-ishchi').className    = 'tab' + (nom === 'ishchi'    ? ' faol' : '');
 }
 
-// ═══════════════════════════════════════════════
-// ISHGA TUSHIRISH
-// ═══════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+// ── Ishga tushirish ───────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
   malumotlarYuklash();
   statistikaYangilash();
   videoWSUlash();
   hodisaWSUlash();
-
-  // Har 30 sekundda statistika yangilanadi
-  statistikaTimer = setInterval(statistikaYangilash, 30000);
-
-  hodisaQoshish('info', { ism: 'Tizim', harakat: 'ishga tushdi' });
-  console.log('[App] Zavod Monitoring ishga tushdi ✓');
+  setInterval(statistikaYangilash, 30000);
+  hodisaQoshish('info', { harakat: 'Tizim ishga tushdi' });
+  console.log('[App] Zavod Monitoring ishga tushdi');
 });
