@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -101,8 +101,10 @@ async def ishchi_skan_api():
 
 
 @app.get("/api/excel/yuklash")
-async def excel_yuklash(davr: str = Query(default="bugun", regex="^(bugun|hafta|oy|hammasi)$")):
-    """Excel hisobotni yuklab olish"""
+async def excel_yuklash(davr: str = "bugun"):
+    """Excel hisobotni yuklab olish - davr: bugun | hafta | oy | hammasi"""
+    if davr not in ("bugun", "hafta", "oy", "hammasi"):
+        davr = "bugun"
     try:
         from excel_eksport import excel_yaratish
         yol = excel_yaratish(davr)
@@ -113,9 +115,9 @@ async def excel_yuklash(davr: str = Query(default="bugun", regex="^(bugun|hafta|
             filename=fayl_nomi
         )
     except ImportError as e:
-        return JSONResponse({"xato": str(e)}, status_code=500)
+        return JSONResponse({"xato": "openpyxl o'rnatilmagan: pip install openpyxl"}, status_code=500)
     except Exception as e:
-        return JSONResponse({"xato": f"Hisobot yaratishda xatolik: {e}"}, status_code=500)
+        return JSONResponse({"xato": f"Hisobot yaratishda xatolik: {str(e)}"}, status_code=500)
 
 
 @app.get("/api/statistika")
