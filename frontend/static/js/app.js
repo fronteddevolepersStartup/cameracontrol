@@ -43,6 +43,8 @@ function videoWSUlash() {
   videoWS.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.tur === 'video' && data.kadr) {
+      // Rasm kelishi bilanoq overlay ni yashirish
+      document.getElementById('kamera-overlay').classList.add('yashirin');
       document.getElementById('video-kadr').src = 'data:image/jpeg;base64,' + data.kadr;
     }
   };
