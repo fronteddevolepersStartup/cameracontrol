@@ -269,7 +269,15 @@ async function ishchiSkan() {
   }
 }
 
-function excelYuklash() {
+function pdfYuklash() {
+  const davrlar = ['1 - Bugun', '2 - Bu hafta', '3 - Bu oy', '4 - Hammasi'];
+  const tanlangan = prompt('PDF hisobot davri:\n\n' + davrlar.join('\n') + '\n\nRaqam kiriting (1-4):', '1');
+  const xarita = {'1': 'bugun', '2': 'hafta', '3': 'oy', '4': 'hammasi'};
+  const davr = xarita[tanlangan];
+  if (!davr) { xabarKorsatish("Noto'g'ri tanlov", 'xato'); return; }
+  xabarKorsatish('PDF tayyorlanmoqda...', 'muvaffaq');
+  window.open('/api/pdf/yuklash?davr=' + davr, '_blank');
+}
   const davrlar = [
     { qiy: 'bugun',   nom: '📅 Bugun' },
     { qiy: 'hafta',   nom: '📆 Bu hafta' },

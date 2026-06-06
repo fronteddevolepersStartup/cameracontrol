@@ -108,11 +108,26 @@ async def excel_yuklash(davr: str = "bugun"):
     try:
         from excel_eksport import excel_yaratish
         yol = excel_yaratish(davr)
-        fayl_nomi = os.path.basename(yol)
         return FileResponse(
             path=yol,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            filename=fayl_nomi
+            filename=os.path.basename(yol)
+        )
+    except Exception as e:
+        return JSONResponse({"xato": str(e)}, status_code=500)
+
+
+@app.get("/api/pdf/yuklash")
+async def pdf_yuklash(davr: str = "bugun"):
+    if davr not in ("bugun", "hafta", "oy", "hammasi"):
+        davr = "bugun"
+    try:
+        from excel_eksport import pdf_yaratish
+        yol = pdf_yaratish(davr)
+        return FileResponse(
+            path=yol,
+            media_type="application/pdf",
+            filename=os.path.basename(yol)
         )
     except Exception as e:
         return JSONResponse({"xato": str(e)}, status_code=500)
