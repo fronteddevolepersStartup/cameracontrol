@@ -166,7 +166,7 @@ def transport_varaqi(wb, boshlanish, tugash):
 
     xulosa_qator = len(qatorlar) + 5
     ws.merge_cells("A{}:H{}".format(xulosa_qator, xulosa_qator))
-    k = ws.cell(row=xulosa_qator, value="XULOSA")
+    k = ws.cell(row=xulosa_qator, column=1, value="XULOSA")
     uslub_qollay(k, **sarlavha_uslub(10))
 
     xulosa = [
@@ -243,7 +243,7 @@ def ishchilar_varaqi(wb, boshlanish, tugash):
     if davomiylik:
         bosh_q = len(qatorlar) + 6
         ws.merge_cells("A{}:D{}".format(bosh_q, bosh_q))
-        k = ws.cell(row=bosh_q, value="ISHCHI DAVOMIYLIK JADVALI")
+        k = ws.cell(row=bosh_q, column=1, value="ISHCHI DAVOMIYLIK JADVALI")
         uslub_qollay(k, **sarlavha_uslub(10))
 
         for ci, nom in enumerate(["Ism", "Qaydlar soni", "Birinchi", "Oxirgi"], 1):
@@ -332,7 +332,7 @@ def xulosa_varaqi(wb, boshlanish, tugash):
 
     # Kunlik jadval
     ws.merge_cells("A8:F8")
-    k = ws.cell(row=8, value="KUNLIK TRANSPORT HARAKATI")
+    k = ws.cell(row=8, column=1, value="KUNLIK TRANSPORT HARAKATI")
     uslub_qollay(k, **sarlavha_uslub(11))
     ws.row_dimensions[8].height = 28
 
