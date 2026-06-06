@@ -78,12 +78,13 @@ function hodisaWSUlash() {
     const data = JSON.parse(e.data);
 
     if (data.tur === 'transport') {
-      transportJadvalQoshish(data["ma'lumot"], true);
-      hodisaQoshish('transport', data["ma'lumot"]);
+      // WebSocket faqat ko'rsatadi, bazaga YOZMAYDI - 2 marta muammo yo'q
+      transportJadvalQoshish(data["malumot"], true);
+      hodisaQoshish('transport', data["malumot"]);
       statistikaYangilash();
     } else if (data.tur === 'ishchi') {
-      ishchiJadvalQoshish(data["ma'lumot"], true);
-      hodisaQoshish('ishchi', data["ma'lumot"]);
+      ishchiJadvalQoshish(data["malumot"], true);
+      hodisaQoshish('ishchi', data["malumot"]);
       statistikaYangilash();
     }
   };
@@ -232,7 +233,7 @@ async function transportSkan(harakat) {
     const d = await r.json();
 
     if (d.holat === 'ok') {
-      const m = d["ma'lumot"];
+      const m = d["malumot"];
       xabarKorsatish(
         `✅ ${m.tur} ${harakat.toUpperCase()}: ${m.raqam} | ${m.rang} | ${m.davlat}/${m.viloyat}`,
         'muvaffaq'
