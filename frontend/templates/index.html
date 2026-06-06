@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zavod Monitoring Tizimi</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════ -->
+<header>
+  <div class="header-left">
+    <div class="logo">⚙️</div>
+    <div>
+      <h1>Zavod Monitoring Tizimi</h1>
+      <span id="sana-vaqt" class="subtext">—</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="holat-badge" id="server-holat">
+      <span class="dot yashil"></span> Tizim Faol
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════ MAIN ═══════════════════════ -->
+<main>
+
+  <!-- ── YUQORI STATISTIKA ── -->
+  <section class="stat-qator">
+    <div class="stat-karta yashil-chegara">
+      <div class="stat-icon">🚛</div>
+      <div>
+        <div class="stat-raqam" id="bugun-kirdi">0</div>
+        <div class="stat-nom">Bugun kirdi</div>
+      </div>
+    </div>
+    <div class="stat-karta qizil-chegara">
+      <div class="stat-icon">🔄</div>
+      <div>
+        <div class="stat-raqam" id="bugun-chiqdi">0</div>
+        <div class="stat-nom">Bugun chiqdi</div>
+      </div>
+    </div>
+    <div class="stat-karta ko'k-chegara">
+      <div class="stat-icon">👷</div>
+      <div>
+        <div class="stat-raqam" id="bugun-ishchi">0</div>
+        <div class="stat-nom">Bugun ishchilar</div>
+      </div>
+    </div>
+    <div class="stat-karta sariq-chegara">
+      <div class="stat-icon">📊</div>
+      <div>
+        <div class="stat-raqam" id="jami-transport">0</div>
+        <div class="stat-nom">Jami transport</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ASOSIY KONTENT ── -->
+  <div class="grid-2">
+
+    <!-- SOL USTUN: Kamera + Tugmalar -->
+    <div class="col">
+
+      <!-- Kamera -->
+      <div class="karta">
+        <div class="karta-sarlavha">
+          📹 Jonli Kamera
+          <span class="badge yashil" id="kamera-holat">JONLI</span>
+        </div>
+        <div class="kamera-oyna">
+          <img id="video-kadr" src="" alt="Kamera yuklanmoqda..."/>
+          <div class="kamera-overlay" id="kamera-overlay">
+            <span>📷 Kamera ulanmoqda...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tugmalar paneli -->
+      <div class="karta">
+        <div class="karta-sarlavha">🎮 Boshqaruv Paneli</div>
+        <div class="tugmalar-grid">
+
+          <div class="tugma-guruh">
+            <div class="guruh-sarlavha">🚛 Transport</div>
+            <button class="tugma yashil-tugma" onclick="transportSkan('kirdi')">
+              ▶ KIRDI
+            </button>
+            <button class="tugma qizil-tugma" onclick="transportSkan('chiqdi')">
+              ◀ CHIQDI
+            </button>
+          </div>
+
+          <div class="tugma-guruh">
+            <div class="guruh-sarlavha">👷 Ishchi</div>
+            <button class="tugma ko'k-tugma" onclick="ishchiSkan()">
+              🔍 SKAN QILISH
+            </button>
+            <button class="tugma sariq-tugma" onclick="excelYuklash()">
+              📥 EXCEL YUKLAB OLISH
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Natija xabari -->
+        <div id="natija-xabar" class="natija-xabar" style="display:none"></div>
+      </div>
+
+      <!-- So'nggi aniqlangan transport -->
+      <div class="karta" id="oxirgi-transport-karta" style="display:none">
+        <div class="karta-sarlavha">🔎 So'nggi Aniqlangan</div>
+        <div class="transport-detal" id="transport-detal"></div>
+      </div>
+
+    </div>
+
+    <!-- O'NG USTUN: Loglar -->
+    <div class="col">
+
+      <!-- Tabs -->
+      <div class="karta">
+        <div class="tab-panel">
+          <button class="tab faol" id="tab-transport" onclick="tabAlmash('transport')">
+            🚛 Transportlar
+          </button>
+          <button class="tab" id="tab-ishchi" onclick="tabAlmash('ishchi')">
+            👷 Ishchilar
+          </button>
+        </div>
+
+        <!-- Transport jadvali -->
+        <div id="panel-transport">
+          <div class="jadval-wrapper">
+            <table class="jadval">
+              <thead>
+                <tr>
+                  <th>Vaqt</th>
+                  <th>Raqam</th>
+                  <th>Tur</th>
+                  <th>Rang</th>
+                  <th>Davlat</th>
+                  <th>Viloyat</th>
+                  <th>Harakat</th>
+                </tr>
+              </thead>
+              <tbody id="transport-tbody">
+                <tr><td colspan="7" class="boʻsh">Hali yozuv yo'q</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ishchi jadvali -->
+        <div id="panel-ishchi" style="display:none">
+          <div class="jadval-wrapper">
+            <table class="jadval">
+              <thead>
+                <tr>
+                  <th>Vaqt</th>
+                  <th>Ism</th>
+                  <th>Harakat</th>
+                </tr>
+              </thead>
+              <tbody id="ishchi-tbody">
+                <tr><td colspan="3" class="boʻsh">Hali yozuv yo'q</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Jonli hodisalar lenti -->
+      <div class="karta">
+        <div class="karta-sarlavha">
+          📡 Jonli Hodisalar
+          <span class="badge ko'k" id="ws-holat">Ulanmoqda...</span>
+        </div>
+        <div class="hodisalar-lenta" id="hodisalar-lenta">
+          <div class="hodisa info">Tizim ishga tushirildi...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
